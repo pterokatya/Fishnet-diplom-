@@ -10,6 +10,16 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.chrome.options import Options
 
+import sys
+
+sys.stdout.reconfigure(encoding='utf-8')
+
+if len(sys.argv) > 1:
+    user_input = sys.argv[1]
+else:
+    print("Не передан аргумент для парсинга")
+    sys.exit(1)
+
 
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'fishnet_backend.settings')
@@ -41,7 +51,7 @@ def open_user_profile(driver, address, apartment=None):
                 driver.execute_script("arguments[0].click();", suggestion)
                 time.sleep(3)
                 return
-        print("❗ Договор не найден в подсказках.")
+        print("Договор не найден в подсказках.")
         return
 
     if apartment:
@@ -74,7 +84,7 @@ def open_user_profile(driver, address, apartment=None):
             link.click()
             time.sleep(3)
         except:
-            print("❗ Не удалось найти строку абонента для частного сектора")
+            print("Не удалось найти строку абонента для частного сектора")
 
 def parse_and_save_subscriber_data(driver, norm_address):
     # ОБЩИЕ
@@ -96,7 +106,7 @@ def parse_and_save_subscriber_data(driver, norm_address):
     driver.execute_script("arguments[0].click();", tmts_tab)
     time.sleep(2)
 
-    print("⏬ Переключаемся на iframe с ТМЦ...")
+    print("Переключаемся на iframe с ТМЦ...")
     # Ждём, пока появится сам контейнер
     WebDriverWait(driver, 10).until(
         EC.presence_of_element_located((By.ID, "customerTabSection52Id"))
@@ -107,7 +117,7 @@ def parse_and_save_subscriber_data(driver, norm_address):
     driver.switch_to.frame(iframe)
 
     # И теперь можно искать dv_table уже внутри iframe
-    print("⏳ Ждём dv_table...")
+    print("Ждём dv_table...")
     WebDriverWait(driver, 10).until(
         EC.presence_of_element_located((By.ID, "dv_table"))
     )
@@ -116,16 +126,16 @@ def parse_and_save_subscriber_data(driver, norm_address):
     model = driver.find_element(By.XPATH, '//*[@id="dv_table"]/table/tbody/tr[2]/th[5]').text.strip()
     address_from_tmts = driver.find_element(By.XPATH, '//*[@id="dv_table"]/table/tbody/tr[2]/th[4]').text.strip()
 
-    print(f"✅ Адрес: {address_from_tmts}")
-    print(f"✅ Оборудование: {model}")
+    print(f"Адрес: {address_from_tmts}")
+    print(f"Оборудование: {model}")
 
     # Не забудь переключиться обратно в основное окно после парсинга
     driver.switch_to.default_content()
 
 
 
-    # 🔹 IPTVPORTAL
-    print("🟡 Переход на вкладку IPTVPORTAL")
+    # IPTVPORTAL
+    print("Переход на вкладку IPTVPORTAL")
 
     iptv_tab = driver.find_element(By.XPATH, "//span[@id='tabCustomerCardName23Id']")
     driver.execute_script("arguments[0].click();", iptv_tab)
@@ -133,7 +143,7 @@ def parse_and_save_subscriber_data(driver, norm_address):
 
     # Скроллим до блока
     driver.execute_script("window.scrollBy(0, 600);")
-    print("⏳ Ждём iframe IPTVPORTAL...")
+    print("Ждём iframe IPTVPORTAL...")
 
     # Ждём появления iframe
     WebDriverWait(driver, 20).until(
@@ -160,12 +170,12 @@ def parse_and_save_subscriber_data(driver, norm_address):
     # Возвращаемся в основной фрейм
     driver.switch_to.default_content()
 
-    print(f"✅ IPTV Login: {iptv_login}")
-    print(f"✅ IPTV Password: {iptv_password}")
+    print(f"IPTV Login: {iptv_login}")
+    print(f"IPTV Password: {iptv_password}")
 
 
 
-    # 🔄 Проверка и сохранение
+    # Проверка и сохранение
     subscriber, created = Subscriber.objects.get_or_create(
         phone=phone,
         address=address_from_tmts or norm_address,
@@ -190,9 +200,9 @@ def parse_and_save_subscriber_data(driver, norm_address):
         subscriber.iptv_password = iptv_password
         subscriber.equipment = model
         subscriber.save()
-        print(f"⚠️ Абонент уже существует. Обновлено: {subscriber}")
+        print(f"Абонент уже существует. Обновлено: {subscriber}")
     else:
-        print(f"✅ Абонент создан: {subscriber}")
+        print(f"Абонент создан: {subscriber}")
 
 # Запуск
 chrome_options = Options()
@@ -212,7 +222,7 @@ pw.send_keys("141179k")
 pw.send_keys(Keys.RETURN)
 time.sleep(4)
 
-user_input = "01689"
+# user_input = "01689"
 norm_address, apartment = normalize_address(user_input)
 
 open_user_profile(driver, norm_address, apartment)
